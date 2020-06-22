@@ -17,6 +17,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -x
 
 DEFAULT_CHART_RELEASER_VERSION=v1.0.0-beta.1
 
@@ -74,7 +75,6 @@ main() {
             fi
         done
 
-        release_charts
         update_index
     else
         echo "Nothing to do. No chart changes detected."
@@ -168,9 +168,9 @@ parse_command_line() {
 install_chart_releaser() {
     echo "Installing chart-releaser..."
 
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
-    tar -xzf cr.tar.gz
-    sudo mv cr /usr/local/bin/cr
+#    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_darwin_amd64.tar.gz"
+#    tar -xzf cr.tar.gz
+#    sudo mv cr /usr/local/bin/cr
 }
 
 lookup_latest_tag() {
@@ -218,7 +218,7 @@ package_chart() {
 
 release_charts() {
     echo 'Releasing charts...'
-    cr upload -o "$owner" -r "$repo"
+    git add .cr-release-packages
 }
 
 update_index() {
@@ -226,17 +226,18 @@ update_index() {
 
     set -x
 
-    cr index -o "$owner" -r "$repo" -c "$charts_repo_url"
-
     gh_pages_worktree=$(mktemp -d)
 
     git worktree add "$gh_pages_worktree" deploy
 
-    cp --force .cr-index/index.yaml "$gh_pages_worktree/index.yaml"
+    curl -s "https://$CR_TOKEN@raw.githubusercontent.com/dunamu/charts/deploy/index.yaml" -o "$gh_pages_worktree/index.yaml"
+    cp -R .cr-release-packages/* "$gh_pages_worktree"
 
     pushd "$gh_pages_worktree" > /dev/null
 
-    git add index.yaml
+    helm repo index . --merge index.yaml
+
+    git add .
     git commit --message="Update index.yaml" --signoff
 
     local repo_url="https://x-access-token:$CR_TOKEN@github.com/$owner/$repo"
