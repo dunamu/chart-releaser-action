@@ -168,7 +168,7 @@ parse_command_line() {
 install_chart_releaser() {
     echo "Installing chart-releaser..."
 
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
+    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_darwin_amd64.tar.gz"
     tar -xzf cr.tar.gz
     sudo mv cr /usr/local/bin/cr
 }
@@ -230,7 +230,7 @@ update_index() {
 
     gh_pages_worktree=$(mktemp -d)
 
-    git worktree add "$gh_pages_worktree" gh-pages
+    git worktree add "$gh_pages_worktree" deploy
 
     cp --force .cr-index/index.yaml "$gh_pages_worktree/index.yaml"
 
@@ -240,7 +240,7 @@ update_index() {
     git commit --message="Update index.yaml" --signoff
 
     local repo_url="https://x-access-token:$CR_TOKEN@github.com/$owner/$repo"
-    git push "$repo_url" gh-pages
+    git push "$repo_url" deploy
 
     popd > /dev/null
 }
